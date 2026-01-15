@@ -6,6 +6,10 @@ mkdir -p /root/.ssh
 chmod 700 /root/.ssh
 
 # 2. Copy the private key
+if [ ! -f /workspace/my_key ]; then
+    echo "Error: /workspace/my_key not found!"
+    exit 1
+fi
 cp /workspace/my_key /root/.ssh/id_rsa
 chmod 600 /root/.ssh/id_rsa
 
