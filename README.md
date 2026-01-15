@@ -41,12 +41,32 @@ Initializes Conda environment:
 bash init_conda.sh
 ```
 
+### `init_venv.sh`
+Activates Python virtual environment:
+- Checks if virtual environment exists
+- Activates the venv and verifies activation
+- Displays Python and pip versions
+
+**Requirements:**
+- Virtual environment must exist at `/workspace/venv`
+
+**Usage:**
+```bash
+# IMPORTANT: Must be sourced (not executed) to activate in current shell
+source init_venv.sh
+# or
+. init_venv.sh
+```
+
+**Note:** This script must be sourced (using `source` or `.`) rather than executed directly, otherwise the virtual environment will only be activated in a subshell and won't affect your current shell session.
+
 ## Prerequisites
 
 Before running the scripts, ensure:
 1. You have root/sudo access
 2. `/workspace/my_key` exists (for Git SSH setup)
 3. `/workspace/.netrc` exists (optional, for Git credentials)
+4. `/workspace/venv` exists (for venv activation, if using `init_venv.sh`)
 
 ## Features
 
@@ -61,3 +81,4 @@ Before running the scripts, ensure:
 - The scripts are designed to run as root
 - SSH keys and configs are set up in `/root/.ssh/`
 - Git is configured globally with user email: `taohu620@gmail.com` and name: `Tao`
+- `init_venv.sh` must be sourced (not executed) to work properly in your current shell
