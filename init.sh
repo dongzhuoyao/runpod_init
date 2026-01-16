@@ -14,7 +14,11 @@ apt update && apt install -y tmux vim git
 echo "Setting up Git SSH..."
 bash "${SCRIPT_DIR}/init_git.sh"
 
-# 3. Copy .netrc if it exists
+# 3. Setup cache symlink
+echo "Setting up cache symlink..."
+bash "${SCRIPT_DIR}/init_cache.sh"
+
+# 4. Copy .netrc if it exists
 if [ -f /workspace/.netrc ]; then
     echo "Copying .netrc..."
     cp /workspace/.netrc /root/
@@ -22,7 +26,7 @@ else
     echo "Warning: /workspace/.netrc not found, skipping..."
 fi
 
-# 4. Optionally setup conda (uncomment if needed)
+# 5. Optionally setup conda (uncomment if needed)
 # echo "Setting up Conda..."
 # bash "${SCRIPT_DIR}/init_conda.sh"
 
