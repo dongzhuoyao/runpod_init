@@ -26,7 +26,10 @@ else
     echo "Warning: /workspace/.netrc not found, skipping..."
 fi
 
-# 5. Optionally setup conda (uncomment if needed)
+# 5. Install Claude
+curl -fsSL https://claude.ai/install.sh | bash
+
+# 6. Optionally setup conda (uncomment if needed)
 # echo "Setting up Conda..."
 # bash "${SCRIPT_DIR}/init_conda.sh"
 
