@@ -28,6 +28,10 @@ fi
 
 # 5. Install Claude
 curl -fsSL https://claude.ai/install.sh | bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+
+curl -fsSL https://opencode.ai/install | bash
+
 
 # 6. Optionally setup conda (uncomment if needed)
 # echo "Setting up Conda..."
