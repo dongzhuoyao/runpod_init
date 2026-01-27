@@ -6,9 +6,12 @@ This repository contains initialization scripts for setting up a RunPod environm
 
 ### `init.sh` (Main Script)
 The main initialization script that orchestrates the setup process:
-- Installs essential packages: `tmux`, `vim`, `git`
-- Sets up Git SSH configuration
-- Copies `.netrc` file to `/root/` (if it exists)
+1. Installs essential packages: `tmux`, `vim`, `git`
+2. Sets up Git SSH configuration
+3. Sets up cache symlink to save disk space
+4. Copies `.netrc` file to `/root/` (if it exists)
+5. Installs Claude CLI and OpenCode.ai
+6. Optionally sets up Conda (commented out by default)
 
 **Usage:**
 ```bash
@@ -27,6 +30,19 @@ Configures Git and SSH for GitHub access:
 
 **Requirements:**
 - `/workspace/my_key` must exist (SSH private key)
+
+### `init_cache.sh`
+Optimizes disk space by redirecting cache to persistent storage:
+- Removes existing `~/.cache` directory or symlink
+- Creates `/workspace/.cache` directory
+- Creates symlink from `~/.cache` to `/workspace/.cache`
+
+**Purpose:** Prevents cache files from consuming space in the root filesystem by redirecting them to `/workspace/.cache`.
+
+**Usage:**
+```bash
+bash init_cache.sh
+```
 
 ### `init_conda.sh`
 Initializes Conda environment:
@@ -64,9 +80,10 @@ source init_venv.sh
 
 Before running the scripts, ensure:
 1. You have root/sudo access
-2. `/workspace/my_key` exists (for Git SSH setup)
+2. `/workspace/my_key` exists (SSH private key for Git setup)
 3. `/workspace/.netrc` exists (optional, for Git credentials)
-4. `/workspace/venv` exists (for venv activation, if using `init_venv.sh`)
+4. `/workspace/venv` exists (optional, for venv activation with `init_venv.sh`)
+5. `/workspace/miniconda3/bin/conda` exists (optional, for Conda setup with `init_conda.sh`)
 
 ## Features
 
@@ -75,6 +92,8 @@ Before running the scripts, ensure:
 - ✅ File existence checks before operations
 - ✅ Informative progress messages
 - ✅ Modular design (scripts can be run individually)
+- ✅ Cache optimization to save disk space
+- ✅ Automatic Claude CLI and OpenCode.ai installation
 
 ## Notes
 
@@ -82,3 +101,6 @@ Before running the scripts, ensure:
 - SSH keys and configs are set up in `/root/.ssh/`
 - Git is configured globally with user email: `taohu620@gmail.com` and name: `Tao`
 - `init_venv.sh` must be sourced (not executed) to work properly in your current shell
+- Cache redirection helps save space in the container's root filesystem
+- Claude CLI is installed to `~/.local/bin/` and added to PATH
+- Conda initialization is disabled by default in `init.sh` (uncomment line 37-38 to enable)
