@@ -1,171 +1,115 @@
 # Sandbox Initialization Scripts
 
-This repository contains initialization scripts and Agent Skills for setting up Ubuntu sandbox environments such as AutoDL and RunPod.
+Run from your Mac. One command sets up a fresh Ubuntu remote machine (AutoDL / RunPod / GPU container) with a working **Mihomo proxy**, GitHub SSH, dev tools, and cache optimization.
 
-The legacy RunPod scripts remain available at the repository root. Newer reusable workflows live under `.codex/skills/` and are compatible with Codex-style and Kimi Code CLI-style Agent Skills.
+## Primary Goal: Remote Proxy Setup
 
-## Agent Skills
+The main workflow initializes a remote machine **and** deploys a Mihomo/Clash proxy on it, so the remote has immediate outbound connectivity through your proxy.
 
-### `ubuntu-server-init`
-
-Bootstrap a fresh Ubuntu server or GPU container over SSH.
-
-Supported sandbox presets:
-
-- `autodl`: uses `/root/autodl-tmp` for persistent data/cache
-- `runpod`: uses `/workspace`
-- `generic`: requires an explicit `--workspace`
-
-Example:
+### One-command setup
 
 ```bash
 .codex/skills/ubuntu-server-init/scripts/ubuntu_server_init.sh \
   --host root@example.com \
   --sandbox autodl \
+  --setup-git \
   --setup-cache \
-  --copy-netrc
+  --setup-mihomo
 ```
 
-With Mihomo proxy setup:
+**What happens automatically:**
+- Discovers your local SSH key (`~/.ssh/id_ed25519` → `id_rsa` → `id_ecdsa`)
+- Discovers your local Mihomo/Clash config (`~/.config/clash.meta/*.yaml`)
+- Uploads both to the remote
+- Installs packages, configures Git, symlinks cache to persistent storage
+- Installs Claude CLI and OpenCode
+- Deploys Mihomo as a systemd service with shell + apt proxy settings
 
-```bash
-.codex/skills/ubuntu-server-init/scripts/ubuntu_server_init.sh \
-  --host root@example.com \
-  --sandbox autodl \
-  --setup-cache \
-  --setup-mihomo \
-  --mihomo-config /path/to/private/mihomo.yaml
-```
+**No manual `scp`. No copying paths. No committing secrets to the repo.**
 
-`--mihomo-config` is intentionally required in this repo. Do not commit private proxy credentials, subscription URLs, UUIDs, private keys, or `.netrc` files.
+### Options
 
-An example Stash/Mihomo config is available at:
+| Flag | Behavior |
+|------|----------|
+| `--host root@ip` | SSH target (required) |
+| `--sandbox autodl\|runpod\|generic` | Persistent storage preset |
+| `--setup-git` | Configure Git + GitHub SSH |
+| `--forward-agent` | Use SSH agent forwarding instead of uploading a key |
+| `--upload-key ~/.ssh/id_rsa` | Upload a specific local key |
+| `--setup-mihomo` | Deploy Mihomo proxy after base init |
+| `--mihomo-config /path/to/config.yaml` | Override auto-discovered config |
+| `--setup-cache` | Symlink `~/.cache` to persistent workspace |
+| `--copy-netrc` | Copy `WORKSPACE/.netrc` to `~/.netrc` |
+| `--init-conda` | Run `conda init bash` |
+| `--create-venv /path` | Create a Python venv |
+| `--dry-run` | Preview all actions without changing remote state |
 
-```text
-examples/stash_tao.example.yaml
-```
+### Standalone proxy deploy
 
-It is derived from the current `stash_tao.yaml` shape, but live node credentials are replaced with placeholders. Copy it outside the repo or to an ignored private path before filling in real values.
-
-### `deploy-ubuntu-mihomo`
-
-Deploy Mihomo/Clash.Meta to an Ubuntu remote machine as a systemd service, then optionally configure shell, apt, git, and Docker proxy settings.
-
-Example:
+If the base init is already done, deploy just the proxy:
 
 ```bash
 .codex/skills/deploy-ubuntu-mihomo/scripts/deploy_ubuntu_mihomo.sh \
   --host root@example.com \
-  --config /path/to/private/mihomo.yaml \
+  --config /path/to/mihomo.yaml \
   --apply-shell \
   --apply-apt
 ```
 
-Kimi Code CLI can invoke these as skills from the project:
+Kimi Code CLI can also invoke these as skills:
 
 ```text
 /skill:ubuntu-server-init initialize root@example.com for autodl and set up mihomo
 ```
 
-## Scripts
+## What the remote looks like after init
 
-### `init.sh` (Main Script)
-The main initialization script that orchestrates the setup process:
-1. Installs essential packages: `tmux`, `vim`, `git`
-2. Sets up Git SSH configuration
-3. Sets up cache symlink to save disk space
-4. Copies `.netrc` file to `/root/` (if it exists)
-5. Installs Claude CLI and OpenCode.ai
-6. Optionally sets up Conda (commented out by default)
+```
+/root/
+├── .ssh/
+│   ├── id_rsa              ← your private key
+│   └── config              ← GitHub SSH config
+├── .cache → /root/autodl-tmp/.cache   ← symlink to persistent storage
+└── .bashrc                 ← shell environment
 
-**Usage:**
-```bash
-bash init.sh
-# or
-./init.sh
+/root/autodl-tmp/           ← persistent workspace
+├── .cache/                 ← pip, huggingface, etc.
+└── my_key                  ← uploaded SSH key (source backup)
+
+System:
+├── mihomo.service          ← systemd proxy service (mixed-port 7890)
+├── /etc/apt/apt.conf.d/99proxy  ← apt proxy settings
+└── tmux, vim, git, curl, python3  ← base packages
 ```
 
-### `init_git.sh`
-Configures Git and SSH for GitHub access:
-- Creates `.ssh` directory with proper permissions
-- Copies SSH private key from `/workspace/my_key`
-- Sets up SSH config for GitHub
-- Configures Git user name and email
-- Tests GitHub SSH connection
-
-**Requirements:**
-- `/workspace/my_key` must exist (SSH private key)
-
-### `init_cache.sh`
-Optimizes disk space by redirecting cache to persistent storage:
-- Removes existing `~/.cache` directory or symlink
-- Creates `/workspace/.cache` directory
-- Creates symlink from `~/.cache` to `/workspace/.cache`
-
-**Purpose:** Prevents cache files from consuming space in the root filesystem by redirecting them to `/workspace/.cache`.
-
-**Usage:**
+Git identity:
 ```bash
-bash init_cache.sh
+git config --global user.name   # Tao
+git config --global user.email  # taohu620@gmail.com
+ssh -T git@github.com           # success
 ```
 
-### `init_conda.sh`
-Initializes Conda environment:
-- Runs `conda init bash`
-- Sources `.bashrc` to activate conda
-
-**Requirements:**
-- Conda must be installed at `/workspace/miniconda3/bin/conda`
-
-**Usage:**
+Proxy check:
 ```bash
-bash init_conda.sh
+curl --proxy http://127.0.0.1:7890 -I https://www.google.com
 ```
 
-### `init_venv.sh`
-Activates Python virtual environment:
-- Checks if virtual environment exists
-- Activates the venv and verifies activation
-- Displays Python and pip versions
+## Legacy root scripts
 
-**Requirements:**
-- Virtual environment must exist at `/workspace/venv`
+The original `init.sh`, `init_git.sh`, `init_cache.sh`, `init_conda.sh`, and `init_venv.sh` remain at the repository root for direct execution on the remote machine itself. The newer SSH-based workflows live under `.codex/skills/`.
 
-**Usage:**
-```bash
-# IMPORTANT: Must be sourced (not executed) to activate in current shell
-source init_venv.sh
-# or
-. init_venv.sh
-```
+## Security
 
-**Note:** This script must be sourced (using `source` or `.`) rather than executed directly, otherwise the virtual environment will only be activated in a subshell and won't affect your current shell session.
-
-## Prerequisites
-
-Before running the scripts, ensure:
-1. You have root/sudo access
-2. `/workspace/my_key` exists (SSH private key for Git setup)
-3. `/workspace/.netrc` exists (optional, for Git credentials)
-4. `/workspace/venv` exists (optional, for venv activation with `init_venv.sh`)
-5. `/workspace/miniconda3/bin/conda` exists (optional, for Conda setup with `init_conda.sh`)
+- **No secrets are committed to this repo.** Live proxy credentials and private keys live on your local machine and are uploaded at runtime.
+- `--mihomo-config` is required in this repo so private credentials are never committed.
+- An example config shape (with placeholders) is available at `examples/stash_tao.example.yaml`.
+- Backups are created automatically for overwritten files (`*.bak.<timestamp>`).
 
 ## Features
 
+- ✅ Zero-manual-copy SSH key discovery and upload
+- ✅ Auto-discovery of local Mihomo/Clash configs
+- ✅ Remote proxy deployment as systemd service
+- ✅ Cache relocation to persistent storage
+- ✅ Dry-run mode for safe preview
 - ✅ Error handling with `set -e`
-- ✅ Relative path detection (scripts work from any location)
-- ✅ File existence checks before operations
-- ✅ Informative progress messages
-- ✅ Modular design (scripts can be run individually)
-- ✅ Cache optimization to save disk space
-- ✅ Automatic Claude CLI and OpenCode.ai installation
-
-## Notes
-
-- The scripts are designed to run as root
-- SSH keys and configs are set up in `/root/.ssh/`
-- Git is configured globally with user email: `taohu620@gmail.com` and name: `Tao`
-- `init_venv.sh` must be sourced (not executed) to work properly in your current shell
-- Cache redirection helps save space in the container's root filesystem
-- Claude CLI is installed to `~/.local/bin/` and added to PATH
-- Conda initialization is disabled by default in `init.sh` (uncomment line 37-38 to enable)

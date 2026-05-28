@@ -1,6 +1,6 @@
 ---
 name: ubuntu-server-init
-description: "Initialize a fresh Ubuntu server or GPU container over SSH with practical defaults borrowed from dongzhuoyao/runpod_init: apt packages, GitHub SSH setup, workspace cache relocation, optional netrc, Claude/OpenCode CLI installers, Conda init, Python venv setup, and optional Mihomo proxy deployment."
+description: "Initialize a fresh Ubuntu server or GPU container over SSH with practical defaults borrowed from dongzhuoyao/runpod_init: apt packages, GitHub SSH setup, workspace cache relocation, optional netrc, Codex/Kimi CLI installers, Conda init, Python venv setup, and optional Mihomo proxy deployment."
 ---
 
 # ubuntu-server-init
@@ -42,8 +42,8 @@ For AutoDL, always save persistent data under `/root/autodl-tmp`.
    - GitHub SSH key setup
    - cache relocation
    - `.netrc` copy
-   - Claude CLI install
-   - OpenCode install
+   - Codex CLI install
+   - Kimi Code CLI install
    - Conda init
    - venv creation or activation helper
    - Mihomo proxy deployment and proxy target setup
@@ -67,8 +67,6 @@ Use:
 Common optional flags:
 
 ```bash
---install-claude
---install-opencode
 --init-conda
 --conda-path /root/autodl-tmp/miniconda3/bin/conda
 --create-venv /root/autodl-tmp/venv
@@ -77,17 +75,47 @@ Common optional flags:
 --mihomo-binary ./mihomo-linux-amd64
 --mihomo-apply-git
 --mihomo-apply-docker
+--install-codex
+--install-kimi
+--install-ai-clis        # install Codex + Kimi
+--forward-agent          # use SSH agent forwarding, no key copy
+--upload-key ~/.ssh/id_ed25519  # auto-upload local key to remote
 --git-key-path /root/autodl-tmp/my_key
 --git-name Tao
 --git-email taohu620@gmail.com
 --dry-run
 ```
 
+`--install-codex` configures Codex with `approval_policy = "never"` and `sandbox_mode = "danger-full-access"` after install. `--install-kimi` configures Kimi with `default_yolo = true` after install. `--install-ai-clis` applies both behaviors.
+
 `--setup-mihomo` runs the sibling `.codex/skills/deploy-ubuntu-mihomo/scripts/deploy_ubuntu_mihomo.sh` after the base Ubuntu init. It applies shell + apt proxy settings by default. In this standalone `sandbox_init` repo, `--mihomo-config` is required so private proxy credentials are supplied explicitly by the caller and are not committed here. Add `--mihomo-apply-git` or `--mihomo-apply-docker` only when needed; Docker restart is side-effectful.
 
 For GPU container conventions, read `references/gpu-container-notes.md`.
 For security constraints around keys and credentials, read `references/security.md`.
 For Kimi Code CLI invocation, read `references/kimi-code-cli.md`.
+
+## Key handling options
+
+To avoid manual `scp` of private keys, use one of these:
+
+1. **SSH agent forwarding** (`--forward-agent`) — private key never leaves your local machine:
+   ```bash
+   ssh-add -l  # ensure your local agent has the key
+   .codex/skills/ubuntu-server-init/scripts/ubuntu_server_init.sh \
+     --host root@example.com \
+     --sandbox autodl \
+     --forward-agent \
+     --setup-git
+   ```
+
+2. **Auto-upload** (`--upload-key`) — the script uploads your local key for you:
+   ```bash
+   .codex/skills/ubuntu-server-init/scripts/ubuntu_server_init.sh \
+     --host root@example.com \
+     --sandbox autodl \
+     --upload-key ~/.ssh/id_ed25519 \
+     --setup-git
+   ```
 
 ## Verification
 
@@ -97,7 +125,8 @@ After the script runs, verify the requested setup:
 ssh <target> 'tmux -V && git --version && python3 --version'
 ssh <target> 'test -L ~/.cache && readlink ~/.cache'
 ssh <target> 'ssh -T git@github.com || true'
-ssh <target> 'command -v claude || true; command -v opencode || true'
+ssh <target> 'codex --version || true; kimi --version || true'
+ssh <target> 'grep -E "^(approval_policy|sandbox_mode)" ~/.codex/config.toml || true; grep -E "^default_yolo" ~/.kimi/config.toml || true'
 ssh <target> 'systemctl is-active mihomo || true'
 ssh <target> 'curl --proxy http://127.0.0.1:7890 -I --max-time 15 https://www.google.com || true'
 ```

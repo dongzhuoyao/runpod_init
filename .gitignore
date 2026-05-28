@@ -1,0 +1,19 @@
+# Secrets and private configs
+*.pem
+*.key
+id_*
+!id_*.pub
+.netrc
+.env
+.env.*
+
+# Live proxy configs (credentials, subscriptions, UUIDs)
+*.yaml
+!examples/*.yaml
+!*.example.yaml
+config.yaml
+clashteng.yaml
+
+# OS
+.DS_Store
+.omx/

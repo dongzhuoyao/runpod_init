@@ -328,7 +328,7 @@ curl --proxy "http://127.0.0.1:${proxy_port}" -I --max-time 20 https://www.googl
 REMOTE
 
 copy_to_remote "$remote_script" "/tmp/deploy-mihomo-remote.sh"
-run_remote "bash /tmp/deploy-mihomo-remote.sh '$remote_tmp' '$PROXY_PORT' '$CONTROLLER' '$APPLY_SHELL' '$APPLY_APT' '$APPLY_GIT' '$APPLY_DOCKER' '$remote_binary'; rm -f /tmp/deploy-mihomo-remote.sh"
+run_remote "bash /tmp/deploy-mihomo-remote.sh '$remote_tmp' '$PROXY_PORT' '$CONTROLLER' '$APPLY_SHELL' '$APPLY_APT' '$APPLY_GIT' '$APPLY_DOCKER' '$remote_binary'; status=\$?; rm -f /tmp/deploy-mihomo-remote.sh; exit \$status"
 
 cat <<EOF
 
