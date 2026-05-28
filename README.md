@@ -39,6 +39,14 @@ With Mihomo proxy setup:
 
 `--mihomo-config` is intentionally required in this repo. Do not commit private proxy credentials, subscription URLs, UUIDs, private keys, or `.netrc` files.
 
+An example Stash/Mihomo config is available at:
+
+```text
+examples/stash_tao.example.yaml
+```
+
+It is derived from the current `stash_tao.yaml` shape, but live node credentials are replaced with placeholders. Copy it outside the repo or to an ignored private path before filling in real values.
+
 ### `deploy-ubuntu-mihomo`
 
 Deploy Mihomo/Clash.Meta to an Ubuntu remote machine as a systemd service, then optionally configure shell, apt, git, and Docker proxy settings.
