@@ -10,6 +10,14 @@ For AutoDL, save data under:
 
 Use that as the default workspace for this skill.
 
+For NVIDIA Brev instances, use the `brev` sandbox preset. Brev commonly logs in as user `nvidia` with `$HOME` at:
+
+```text
+/home/nvidia
+```
+
+The `brev` preset uses `/home/nvidia/projects` as the workspace. No Mihomo/proxy setup is needed for the `brev` preset unless the user explicitly asks for it. Do not enable cache relocation by default on Brev; its images may already point `~/.cache` at provider-managed storage such as `/ephemeral/cache`.
+
 Prefer storing heavy or persistent data under the workspace:
 
 - cache: `<workspace>/.cache`

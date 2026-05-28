@@ -42,7 +42,7 @@ if [ ! -f "$HOME/.codex/config.toml" ]; then
     touch "$HOME/.codex/config.toml"
 fi
 tmp_codex_config="$(mktemp)"
-grep -Ev '^(approval_policy|sandbox_mode)[[:space:]]*=' "$HOME/.codex/config.toml" > "$tmp_codex_config"
+grep -Ev '^(approval_policy|sandbox_mode)[[:space:]]*=' "$HOME/.codex/config.toml" > "$tmp_codex_config" || true
 {
     printf 'approval_policy = "never"\n'
     printf 'sandbox_mode = "danger-full-access"\n\n'
@@ -56,7 +56,11 @@ fi
 
 export PATH="$HOME/.kimi-code/bin:$HOME/.local/bin:$PATH"
 if [ -x "$HOME/.kimi-code/bin/kimi" ]; then
-    ln -sf "$HOME/.kimi-code/bin/kimi" /usr/local/bin/kimi
+    if [ "$(id -u)" -eq 0 ]; then
+        ln -sf "$HOME/.kimi-code/bin/kimi" /usr/local/bin/kimi
+    else
+        sudo ln -sf "$HOME/.kimi-code/bin/kimi" /usr/local/bin/kimi
+    fi
 fi
 grep -Fqx 'export PATH="$HOME/.kimi-code/bin:$HOME/.local/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null || \
     echo 'export PATH="$HOME/.kimi-code/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
@@ -66,7 +70,7 @@ if [ ! -f "$HOME/.kimi/config.toml" ]; then
     touch "$HOME/.kimi/config.toml"
 fi
 tmp_kimi_config="$(mktemp)"
-grep -Ev '^default_yolo[[:space:]]*=' "$HOME/.kimi/config.toml" > "$tmp_kimi_config"
+grep -Ev '^default_yolo[[:space:]]*=' "$HOME/.kimi/config.toml" > "$tmp_kimi_config" || true
 {
     printf 'default_yolo = true\n\n'
     cat "$tmp_kimi_config"

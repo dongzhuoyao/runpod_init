@@ -17,6 +17,7 @@ Before running initialization, identify the server sandbox/provider. If the user
 
 - `autodl`: data and cache under `/root/autodl-tmp`
 - `runpod`: data and cache under `/workspace`
+- `brev`: NVIDIA Brev instances as user `nvidia`, project data under `/home/nvidia/projects`; do not deploy Mihomo/proxy by default
 - `generic`: require an explicit `--workspace` path
 
 For AutoDL, always save persistent data under `/root/autodl-tmp`.
@@ -26,6 +27,7 @@ For AutoDL, always save persistent data under `/root/autodl-tmp`.
 - Sandbox: `autodl`
 - Remote workspace for AutoDL: `/root/autodl-tmp`
 - Remote workspace for RunPod: `/workspace`
+- Remote workspace for Brev/NVIDIA: `/home/nvidia/projects`
 - Packages: `tmux vim git git-lfs curl ca-certificates openssh-client python3 python3-venv`; Git LFS filters are initialized with `git lfs install`
 - Git key source on remote: `<workspace>/my_key`
 - Git identity: `Tao <taohu620@gmail.com>`
@@ -84,6 +86,15 @@ Common optional flags:
 --git-name Tao
 --git-email taohu620@gmail.com
 --dry-run
+```
+
+NVIDIA Brev example for the configured `brevtao` SSH host; no proxy is needed:
+
+```bash
+.codex/skills/ubuntu-server-init/scripts/ubuntu_server_init.sh \
+  --host brevtao \
+  --sandbox brev \
+  --install-ai-clis
 ```
 
 `--install-codex` configures Codex with `approval_policy = "never"` and `sandbox_mode = "danger-full-access"` after install. `--install-kimi` configures Kimi with `default_yolo = true` after install. `--install-ai-clis` applies both behaviors.

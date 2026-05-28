@@ -34,7 +34,7 @@ The main workflow initializes a remote machine **and** deploys a Mihomo/Clash pr
 | Flag | Behavior |
 |------|----------|
 | `--host root@ip` | SSH target (required) |
-| `--sandbox autodl\|runpod\|generic` | Persistent storage preset |
+| `--sandbox autodl\|runpod\|brev\|generic` | Persistent storage preset |
 | `--setup-git` | Configure Git + GitHub SSH |
 | `--forward-agent` | Use SSH agent forwarding instead of uploading a key |
 | `--upload-key ~/.ssh/id_rsa` | Upload a specific local key |
@@ -65,6 +65,17 @@ Kimi Code CLI can also invoke these as skills:
 
 ```text
 /skill:ubuntu-server-init initialize root@example.com for autodl and set up mihomo
+```
+
+### NVIDIA Brev without proxy
+
+The configured Brev host is `brevtao`. Brev does not need the Mihomo proxy path:
+
+```bash
+.codex/skills/ubuntu-server-init/scripts/ubuntu_server_init.sh \
+  --host brevtao \
+  --sandbox brev \
+  --install-ai-clis
 ```
 
 ## What the remote looks like after init

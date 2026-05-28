@@ -34,7 +34,7 @@ Usage:
 
 Options:
   --ssh-port PORT          SSH port, default 22
-  --sandbox NAME           Sandbox/provider: autodl, runpod, or generic. Default autodl
+  --sandbox NAME           Sandbox/provider: autodl, runpod, brev, or generic. Default autodl
   --workspace PATH         Persistent workspace path. Defaults by sandbox
   --packages "PKGS"        Apt packages to install
   --setup-git              Configure GitHub SSH using a remote key file
@@ -109,6 +109,11 @@ case "$SANDBOX" in
       WORKSPACE="/workspace"
     fi
     ;;
+  brev)
+    if [[ "$WORKSPACE_SET" -eq 0 ]]; then
+      WORKSPACE="/home/nvidia/projects"
+    fi
+    ;;
   generic)
     if [[ "$WORKSPACE_SET" -eq 0 ]]; then
       echo "--workspace is required when --sandbox generic is used" >&2
@@ -116,7 +121,7 @@ case "$SANDBOX" in
     fi
     ;;
   *)
-    echo "Unsupported sandbox: $SANDBOX. Use autodl, runpod, or generic." >&2
+    echo "Unsupported sandbox: $SANDBOX. Use autodl, runpod, brev, or generic." >&2
     exit 2
     ;;
 esac
@@ -411,6 +416,14 @@ set -e
 
 source /etc/profile.d/proxy.sh 2>/dev/null || true
 
+sudo_cmd() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
 node_ok=0
 if command -v node >/dev/null 2>&1; then
   major=$(node --version | sed 's/v//' | cut -d. -f1)
@@ -420,20 +433,20 @@ if command -v node >/dev/null 2>&1; then
 fi
 
 if [[ "$node_ok" -eq 0 ]]; then
-  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-  apt-get install -y nodejs
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo_cmd bash -
+  sudo_cmd apt-get install -y nodejs
 fi
 
 if command -v codex >/dev/null 2>&1; then
   echo "codex_already_installed=$(codex --version)"
 else
-  npm install -g @openai/codex
+  sudo_cmd npm install -g @openai/codex
 fi
 
 mkdir -p "$HOME/.codex"
 touch "$HOME/.codex/config.toml"
 tmp_config="$(mktemp)"
-grep -Ev '^(approval_policy|sandbox_mode)[[:space:]]*=' "$HOME/.codex/config.toml" > "$tmp_config"
+grep -Ev '^(approval_policy|sandbox_mode)[[:space:]]*=' "$HOME/.codex/config.toml" > "$tmp_config" || true
 {
   printf 'approval_policy = "never"\n'
   printf 'sandbox_mode = "danger-full-access"\n\n'
@@ -459,27 +472,40 @@ if [[ "$INSTALL_KIMI" -eq 1 ]]; then
 set -e
 
 source /etc/profile.d/proxy.sh 2>/dev/null || true
+export PATH="$HOME/.kimi-code/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
+sudo_cmd() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
 
 if command -v kimi >/dev/null 2>&1; then
   echo "kimi_already_installed=$(kimi --version)"
+elif [[ -x "$HOME/.kimi-code/bin/kimi" ]]; then
+  echo "kimi_already_installed=$("$HOME/.kimi-code/bin/kimi" --version)"
 else
   curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash
 fi
 
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 if [[ -x "$HOME/.kimi-code/bin/kimi" ]]; then
-  install -d /usr/local/bin
-  ln -sf "$HOME/.kimi-code/bin/kimi" /usr/local/bin/kimi
-  cat >/etc/profile.d/kimi.sh <<EOF
+  sudo_cmd install -d /usr/local/bin
+  sudo_cmd ln -sf "$HOME/.kimi-code/bin/kimi" /usr/local/bin/kimi
+  tmp_profile="$(mktemp)"
+  cat >"$tmp_profile" <<EOF
 export PATH="$HOME/.kimi-code/bin:\$PATH"
 EOF
+  sudo_cmd install -m 0644 "$tmp_profile" /etc/profile.d/kimi.sh
+  rm -f "$tmp_profile"
 fi
-grep -Fqx 'export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null || \
-  echo 'export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"' >> "$HOME/.bashrc"
+grep -Fqx 'export PATH="$HOME/.kimi-code/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null || \
+  echo 'export PATH="$HOME/.kimi-code/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"' >> "$HOME/.bashrc"
 mkdir -p "$HOME/.kimi"
 touch "$HOME/.kimi/config.toml"
 tmp_config="$(mktemp)"
-grep -Ev '^default_yolo[[:space:]]*=' "$HOME/.kimi/config.toml" > "$tmp_config"
+grep -Ev '^default_yolo[[:space:]]*=' "$HOME/.kimi/config.toml" > "$tmp_config" || true
 {
   printf 'default_yolo = true\n\n'
   cat "$tmp_config"
