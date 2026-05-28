@@ -6,7 +6,7 @@ SSH_PORT="22"
 SANDBOX="autodl"
 WORKSPACE=""
 WORKSPACE_SET=0
-PACKAGES="tmux vim git curl ca-certificates openssh-client python3 python3-venv"
+PACKAGES="tmux vim git git-lfs curl ca-certificates openssh-client python3 python3-venv"
 SETUP_GIT=0
 SETUP_CACHE=0
 COPY_NETRC=0
@@ -273,6 +273,9 @@ sudo_cmd chown "$(id -u):$(id -g)" "$workspace" 2>/dev/null || true
 
 sudo_cmd apt-get update
 sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get install -y $packages
+if command -v git-lfs >/dev/null 2>&1; then
+  git lfs install
+fi
 
 if [[ "$setup_git" == "1" ]]; then
   mkdir -p "$HOME/.ssh"
@@ -351,6 +354,7 @@ echo "versions:"
 tmux -V || true
 vim --version | sed -n '1p' || true
 git --version || true
+git lfs version || true
 python3 --version || true
 
 

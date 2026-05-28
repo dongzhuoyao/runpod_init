@@ -26,7 +26,7 @@ For AutoDL, always save persistent data under `/root/autodl-tmp`.
 - Sandbox: `autodl`
 - Remote workspace for AutoDL: `/root/autodl-tmp`
 - Remote workspace for RunPod: `/workspace`
-- Packages: `tmux vim git curl ca-certificates openssh-client python3 python3-venv`
+- Packages: `tmux vim git git-lfs curl ca-certificates openssh-client python3 python3-venv`; Git LFS filters are initialized with `git lfs install`
 - Git key source on remote: `<workspace>/my_key`
 - Git identity: `Tao <taohu620@gmail.com>`
 - Cache relocation: `~/.cache -> /root/autodl-tmp/.cache`
@@ -122,7 +122,7 @@ To avoid manual `scp` of private keys, use one of these:
 After the script runs, verify the requested setup:
 
 ```bash
-ssh <target> 'tmux -V && git --version && python3 --version'
+ssh <target> 'tmux -V && git --version && git lfs version && python3 --version'
 ssh <target> 'test -L ~/.cache && readlink ~/.cache'
 ssh <target> 'ssh -T git@github.com || true'
 ssh <target> 'codex --version || true; kimi --version || true'

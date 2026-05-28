@@ -8,7 +8,8 @@ echo "Starting initialization..."
 
 # 1. Install essential packages
 echo "Installing packages..."
-apt update && apt install -y tmux vim git curl ca-certificates python3 python3-venv
+apt update && apt install -y tmux vim git git-lfs curl ca-certificates python3 python3-venv
+git lfs install
 
 # 2. Setup Git SSH configuration
 echo "Setting up Git SSH..."

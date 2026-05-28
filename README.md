@@ -22,7 +22,7 @@ The main workflow initializes a remote machine **and** deploys a Mihomo/Clash pr
 - Discovers your local SSH key (`~/.ssh/id_ed25519` -> `id_rsa` -> `id_ecdsa`)
 - Discovers your local Mihomo/Clash config (`~/.config/clash.meta/*.yaml`)
 - Uploads both to the remote
-- Installs packages, configures Git, symlinks cache to persistent storage
+- Installs packages, configures Git/Git LFS, symlinks cache to persistent storage
 - Optionally installs Codex and Kimi with approval-free/yolo defaults
 - Deploys Mihomo with shell + apt proxy settings
 - Uses systemd when available, or a container-safe autostart fallback when systemd is offline
@@ -87,7 +87,7 @@ System:
 ├── /usr/local/bin/mihomo-autostart     # fallback launcher for containers
 ├── /etc/profile.d/mihomo-autostart.sh  # login autostart hook
 ├── /etc/apt/apt.conf.d/95proxy         # apt proxy settings
-└── tmux, vim, git, curl, python3       # base packages
+└── tmux, vim, git, git-lfs, curl       # base packages
 ```
 
 Git identity:
