@@ -173,6 +173,10 @@ backup_file() {
   fi
 }
 
+systemd_ready() {
+  [[ -d /run/systemd/system ]] && need_cmd systemctl && [[ "$(systemctl is-system-running 2>/dev/null || true)" != "offline" ]]
+}
+
 if [[ ! -f /etc/os-release ]]; then
   echo "Cannot identify remote OS: /etc/os-release missing" >&2
   exit 1
@@ -249,6 +253,41 @@ EOF
 sudo_cmd install -m 0644 /tmp/mihomo.service.$$ /etc/systemd/system/mihomo.service
 rm -f /tmp/mihomo.service.$$
 
+cat >/tmp/mihomo-autostart.$$ <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if pgrep -f '^/usr/local/bin/mihomo -d /etc/mihomo$' >/dev/null 2>&1; then
+  exit 0
+fi
+
+mkdir -p /var/log
+nohup /usr/local/bin/mihomo -d /etc/mihomo >>/var/log/mihomo.log 2>&1 &
+EOF
+sudo_cmd install -m 0755 /tmp/mihomo-autostart.$$ /usr/local/bin/mihomo-autostart
+rm -f /tmp/mihomo-autostart.$$
+
+cat >/tmp/mihomo-autostart-profile.$$ <<'EOF'
+# Auto-start Mihomo on container login when systemd is unavailable.
+if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ] && [ "$(systemctl is-system-running 2>/dev/null || true)" != "offline" ]; then
+  :
+elif command -v /usr/local/bin/mihomo-autostart >/dev/null 2>&1; then
+  /usr/local/bin/mihomo-autostart >/dev/null 2>&1 || true
+fi
+EOF
+sudo_cmd install -m 0644 /tmp/mihomo-autostart-profile.$$ /etc/profile.d/mihomo-autostart.sh
+rm -f /tmp/mihomo-autostart-profile.$$
+
+if need_cmd crontab; then
+  current_cron="$(mktemp)"
+  crontab -l >"$current_cron" 2>/dev/null || true
+  if ! grep -Fq '/usr/local/bin/mihomo-autostart' "$current_cron"; then
+    printf '%s\n' '@reboot /usr/local/bin/mihomo-autostart >/dev/null 2>&1' >> "$current_cron"
+    crontab "$current_cron"
+  fi
+  rm -f "$current_cron"
+fi
+
 if [[ "$apply_shell" == "1" ]]; then
   backup_file /etc/profile.d/proxy.sh
   cat >/tmp/proxy.sh.$$ <<EOF
@@ -282,7 +321,7 @@ if [[ "$apply_git" == "1" ]]; then
 fi
 
 if [[ "$apply_docker" == "1" ]]; then
-  if need_cmd docker || systemctl list-unit-files docker.service >/dev/null 2>&1; then
+  if need_cmd docker || (systemd_ready && systemctl list-unit-files docker.service >/dev/null 2>&1); then
     sudo_cmd mkdir -p /etc/systemd/system/docker.service.d
     backup_file /etc/systemd/system/docker.service.d/http-proxy.conf
     cat >/tmp/docker-http-proxy.conf.$$ <<EOF
@@ -311,18 +350,43 @@ EOF
   fi
 fi
 
-sudo_cmd systemctl daemon-reload
-sudo_cmd systemctl enable --now mihomo
-sudo_cmd systemctl restart mihomo
-sleep 2
+if systemd_ready; then
+  sudo_cmd systemctl daemon-reload
+  sudo_cmd systemctl enable --now mihomo
+  sudo_cmd systemctl restart mihomo
+  startup_mode="systemd"
+else
+  pkill -f '/usr/local/bin/mihomo -d /etc/mihomo' >/dev/null 2>&1 || true
+  sudo_cmd /usr/local/bin/mihomo-autostart
+  startup_mode="profile-autostart"
+fi
 
-if [[ "$apply_docker" == "1" ]] && systemctl list-unit-files docker.service >/dev/null 2>&1; then
+controller_ready=0
+for _ in $(seq 1 20); do
+  if curl --noproxy '*' -fsS --max-time 2 "http://${controller}/proxies" >/tmp/mihomo-proxies.json; then
+    controller_ready=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$controller_ready" != "1" ]]; then
+  echo "Mihomo controller did not become ready: http://${controller}/proxies" >&2
+  tail -50 /var/log/mihomo.log 2>/dev/null || true
+  exit 1
+fi
+
+if [[ "$apply_docker" == "1" ]] && systemd_ready && systemctl list-unit-files docker.service >/dev/null 2>&1; then
   sudo_cmd systemctl daemon-reload
   sudo_cmd systemctl restart docker || echo "Warning: docker restart failed" >&2
 fi
 
-echo "mihomo_status=$(systemctl is-active mihomo)"
-curl --noproxy '*' -fsS --max-time 5 "http://${controller}/proxies" >/tmp/mihomo-proxies.json
+if systemd_ready; then
+  echo "mihomo_status=$(systemctl is-active mihomo)"
+else
+  pgrep -af '^/usr/local/bin/mihomo -d /etc/mihomo$'
+  echo "mihomo_status=running"
+fi
+echo "mihomo_startup_mode=${startup_mode}"
 echo "controller_ok=1 bytes=$(wc -c </tmp/mihomo-proxies.json)"
 curl --proxy "http://127.0.0.1:${proxy_port}" -I --max-time 20 https://www.google.com | sed -n '1,5p'
 REMOTE

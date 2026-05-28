@@ -1,13 +1,13 @@
 ---
 name: deploy-ubuntu-mihomo
-description: Deploy Mihomo/Clash.Meta on an Ubuntu remote machine using a Clash/Stash YAML config, install it as a systemd service, configure shell/apt/git/Docker proxy settings, verify connectivity, and keep proxy/controller ports safely bound to localhost.
+description: Deploy Mihomo/Clash.Meta on an Ubuntu remote machine using a Clash/Stash YAML config, install it as a systemd service or container-safe autostart fallback, configure shell/apt/git/Docker proxy settings, verify connectivity, and keep proxy/controller ports safely bound to localhost.
 ---
 
 # deploy-ubuntu-mihomo
 
 Use this skill when the user wants to apply their Stash/Clash proxy policy on an Ubuntu remote machine.
 
-Default approach: run Mihomo directly on Ubuntu as a headless service and point local Ubuntu tools at `127.0.0.1:7890`.
+Default approach: run Mihomo directly on Ubuntu as a headless service and point local Ubuntu tools at `127.0.0.1:7890`. Use systemd when systemd is really active; otherwise install `/usr/local/bin/mihomo-autostart`, `/etc/profile.d/mihomo-autostart.sh`, and an `@reboot` crontab entry when `crontab` exists.
 
 ## Inputs to collect or infer
 
@@ -43,7 +43,7 @@ Read `references/security.md` before enabling LAN access or authentication chang
    Confirm it has proxy definitions/providers, groups, and rules. If `mixed-port`, `allow-lan`, or `external-controller` are missing, add safe top-level defaults to the deployed copy, not necessarily the source file.
 2. Run a dry-run if the target is unfamiliar.
 3. Execute `scripts/deploy_ubuntu_mihomo.sh` from the skill directory.
-4. Verify remote service health and proxy behavior.
+4. Verify remote service health or fallback process health, startup mode, and proxy behavior.
 5. Report changed files, enabled targets, verification evidence, and rollback commands.
 
 ## Script
@@ -80,6 +80,7 @@ Run or confirm the script ran:
 
 ```bash
 ssh <target> 'systemctl is-active mihomo'
+ssh <target> 'pgrep -af "/usr/local/bin/mihomo -d /etc/mihomo" || true'
 ssh <target> 'curl --proxy http://127.0.0.1:7890 -I --max-time 15 https://www.google.com'
 ssh <target> "curl --noproxy '*' -sS --max-time 5 http://127.0.0.1:9090/proxies | head -c 200"
 ```
@@ -100,6 +101,7 @@ Minimum rollback:
 
 ```bash
 ssh <target> 'sudo systemctl disable --now mihomo || true'
-ssh <target> 'sudo rm -f /etc/systemd/system/mihomo.service /etc/profile.d/proxy.sh /etc/apt/apt.conf.d/95proxy'
+ssh <target> 'sudo pkill -f "/usr/local/bin/mihomo -d /etc/mihomo" || true'
+ssh <target> 'sudo rm -f /etc/systemd/system/mihomo.service /usr/local/bin/mihomo-autostart /etc/profile.d/mihomo-autostart.sh /etc/profile.d/proxy.sh /etc/apt/apt.conf.d/95proxy'
 ssh <target> 'sudo systemctl daemon-reload'
 ```
