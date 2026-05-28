@@ -388,7 +388,7 @@ else
 fi
 echo "mihomo_startup_mode=${startup_mode}"
 echo "controller_ok=1 bytes=$(wc -c </tmp/mihomo-proxies.json)"
-curl --proxy "http://127.0.0.1:${proxy_port}" -I --max-time 20 https://www.google.com | sed -n '1,5p'
+curl --proxy "http://127.0.0.1:${proxy_port}" -I --max-time 20 http://www.gstatic.com/generate_204 | sed -n '1,5p'
 REMOTE
 
 copy_to_remote "$remote_script" "/tmp/deploy-mihomo-remote.sh"
