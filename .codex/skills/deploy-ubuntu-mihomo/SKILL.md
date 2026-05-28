@@ -51,7 +51,7 @@ Read `references/security.md` before enabling LAN access or authentication chang
 Use the bundled script:
 
 ```bash
-.codex/skills/deploy_ubuntu_mihomo/scripts/deploy_ubuntu_mihomo.sh \
+.codex/skills/deploy-ubuntu-mihomo/scripts/deploy_ubuntu_mihomo.sh \
   --host root@example.com \
   --config clash/clashteng.yaml \
   --apply-shell \
@@ -79,8 +79,8 @@ For target-specific config details, read `references/ubuntu-proxy-targets.md`.
 Run or confirm the script ran:
 
 ```bash
-ssh <target> 'systemctl is-active mihomo'
-ssh <target> 'pgrep -af "/usr/local/bin/mihomo -d /etc/mihomo" || true'
+ssh <target> 'systemctl is-active mihomo || true'
+ssh <target> 'pgrep -af "^/usr/local/bin/mihomo -d /etc/mihomo$" || true'
 ssh <target> 'curl --proxy http://127.0.0.1:7890 -I --max-time 15 https://www.google.com'
 ssh <target> "curl --noproxy '*' -sS --max-time 5 http://127.0.0.1:9090/proxies | head -c 200"
 ```

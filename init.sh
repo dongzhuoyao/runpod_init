@@ -8,7 +8,7 @@ echo "Starting initialization..."
 
 # 1. Install essential packages
 echo "Installing packages..."
-apt update && apt install -y tmux vim git
+apt update && apt install -y tmux vim git curl ca-certificates python3 python3-venv
 
 # 2. Setup Git SSH configuration
 echo "Setting up Git SSH..."
@@ -26,11 +26,51 @@ else
     echo "Warning: /workspace/.netrc not found, skipping..."
 fi
 
-# 5. Install Claude
-curl -fsSL https://claude.ai/install.sh | bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+# 5. Install AI CLIs
+if ! command -v node >/dev/null 2>&1 || [ "$(node --version | sed 's/v//' | cut -d. -f1)" -lt 18 ]; then
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+    apt install -y nodejs
+fi
 
-curl -fsSL https://opencode.ai/install | bash
+if ! command -v codex >/dev/null 2>&1; then
+    npm install -g @openai/codex
+fi
+
+mkdir -p "$HOME/.codex"
+if [ ! -f "$HOME/.codex/config.toml" ]; then
+    touch "$HOME/.codex/config.toml"
+fi
+tmp_codex_config="$(mktemp)"
+grep -Ev '^(approval_policy|sandbox_mode)[[:space:]]*=' "$HOME/.codex/config.toml" > "$tmp_codex_config"
+{
+    printf 'approval_policy = "never"\n'
+    printf 'sandbox_mode = "danger-full-access"\n\n'
+    cat "$tmp_codex_config"
+} > "$HOME/.codex/config.toml"
+rm -f "$tmp_codex_config"
+
+if ! command -v kimi >/dev/null 2>&1; then
+    curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash
+fi
+
+export PATH="$HOME/.kimi-code/bin:$HOME/.local/bin:$PATH"
+if [ -x "$HOME/.kimi-code/bin/kimi" ]; then
+    ln -sf "$HOME/.kimi-code/bin/kimi" /usr/local/bin/kimi
+fi
+grep -Fqx 'export PATH="$HOME/.kimi-code/bin:$HOME/.local/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null || \
+    echo 'export PATH="$HOME/.kimi-code/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+
+mkdir -p "$HOME/.kimi"
+if [ ! -f "$HOME/.kimi/config.toml" ]; then
+    touch "$HOME/.kimi/config.toml"
+fi
+tmp_kimi_config="$(mktemp)"
+grep -Ev '^default_yolo[[:space:]]*=' "$HOME/.kimi/config.toml" > "$tmp_kimi_config"
+{
+    printf 'default_yolo = true\n\n'
+    cat "$tmp_kimi_config"
+} > "$HOME/.kimi/config.toml"
+rm -f "$tmp_kimi_config"
 
 
 # 6. Optionally setup conda (uncomment if needed)

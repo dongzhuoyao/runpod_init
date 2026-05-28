@@ -12,5 +12,4 @@ Rules:
 - Use `StrictHostKeyChecking accept-new` for first-time GitHub setup rather than disabling host key checks.
 - Prefer a deploy key or least-privilege GitHub key for remote containers.
 
-The script may install Claude CLI or OpenCode by piping remote installer scripts from their official URLs. Only enable those flags when the user explicitly wants those tools installed.
-
+The script may install Codex or Kimi by using their upstream package/installer flows. Only enable those flags when the user explicitly wants those tools installed, and keep authentication material outside the repository.

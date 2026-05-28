@@ -31,7 +31,7 @@ For AutoDL, always save persistent data under `/root/autodl-tmp`.
 - Git identity: `Tao <taohu620@gmail.com>`
 - Cache relocation: `~/.cache -> /root/autodl-tmp/.cache`
 - Optional `.netrc`: `/root/autodl-tmp/.netrc -> ~/.netrc`
-- Optional Mihomo config: user-provided local Clash/Stash/Mihomo YAML path
+- Optional Mihomo config: user-provided or auto-discovered local Clash/Stash/Mihomo YAML path
 - Optional Mihomo proxy targets: shell + apt by default
 
 ## Workflow
@@ -88,7 +88,7 @@ Common optional flags:
 
 `--install-codex` configures Codex with `approval_policy = "never"` and `sandbox_mode = "danger-full-access"` after install. `--install-kimi` configures Kimi with `default_yolo = true` after install. `--install-ai-clis` applies both behaviors.
 
-`--setup-mihomo` runs the sibling `.codex/skills/deploy-ubuntu-mihomo/scripts/deploy_ubuntu_mihomo.sh` after the base Ubuntu init. It applies shell + apt proxy settings by default. In this standalone `sandbox_init` repo, `--mihomo-config` is required so private proxy credentials are supplied explicitly by the caller and are not committed here. Add `--mihomo-apply-git` or `--mihomo-apply-docker` only when needed; Docker restart is side-effectful.
+`--setup-mihomo` runs the sibling `.codex/skills/deploy-ubuntu-mihomo/scripts/deploy_ubuntu_mihomo.sh` after the base Ubuntu init. It applies shell + apt proxy settings by default. Supply `--mihomo-config` explicitly or let the script auto-discover a local config from common Clash/Mihomo paths. Private proxy credentials must stay outside this repo. Add `--mihomo-apply-git` or `--mihomo-apply-docker` only when needed; Docker restart is side-effectful.
 
 For GPU container conventions, read `references/gpu-container-notes.md`.
 For security constraints around keys and credentials, read `references/security.md`.
@@ -128,6 +128,7 @@ ssh <target> 'ssh -T git@github.com || true'
 ssh <target> 'codex --version || true; kimi --version || true'
 ssh <target> 'grep -E "^(approval_policy|sandbox_mode)" ~/.codex/config.toml || true; grep -E "^default_yolo" ~/.kimi/config.toml || true'
 ssh <target> 'systemctl is-active mihomo || true'
+ssh <target> 'pgrep -af "^/usr/local/bin/mihomo -d /etc/mihomo$" || true'
 ssh <target> 'curl --proxy http://127.0.0.1:7890 -I --max-time 15 https://www.google.com || true'
 ```
 
