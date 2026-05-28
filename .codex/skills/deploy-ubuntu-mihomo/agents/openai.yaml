@@ -1,0 +1,6 @@
+interface:
+  display_name: "Deploy Ubuntu Mihomo"
+  short_description: "Install Mihomo proxy service on Ubuntu"
+  default_prompt: "Use $deploy-ubuntu-mihomo to install my Clash/Stash proxy config on an Ubuntu remote."
+policy:
+  allow_implicit_invocation: true

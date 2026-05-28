@@ -1,6 +1,63 @@
-# RunPod Initialization Scripts
+# Sandbox Initialization Scripts
 
-This repository contains initialization scripts for setting up a RunPod environment.
+This repository contains initialization scripts and Agent Skills for setting up Ubuntu sandbox environments such as AutoDL and RunPod.
+
+The legacy RunPod scripts remain available at the repository root. Newer reusable workflows live under `.codex/skills/` and are compatible with Codex-style and Kimi Code CLI-style Agent Skills.
+
+## Agent Skills
+
+### `ubuntu-server-init`
+
+Bootstrap a fresh Ubuntu server or GPU container over SSH.
+
+Supported sandbox presets:
+
+- `autodl`: uses `/root/autodl-tmp` for persistent data/cache
+- `runpod`: uses `/workspace`
+- `generic`: requires an explicit `--workspace`
+
+Example:
+
+```bash
+.codex/skills/ubuntu-server-init/scripts/ubuntu_server_init.sh \
+  --host root@example.com \
+  --sandbox autodl \
+  --setup-cache \
+  --copy-netrc
+```
+
+With Mihomo proxy setup:
+
+```bash
+.codex/skills/ubuntu-server-init/scripts/ubuntu_server_init.sh \
+  --host root@example.com \
+  --sandbox autodl \
+  --setup-cache \
+  --setup-mihomo \
+  --mihomo-config /path/to/private/mihomo.yaml
+```
+
+`--mihomo-config` is intentionally required in this repo. Do not commit private proxy credentials, subscription URLs, UUIDs, private keys, or `.netrc` files.
+
+### `deploy-ubuntu-mihomo`
+
+Deploy Mihomo/Clash.Meta to an Ubuntu remote machine as a systemd service, then optionally configure shell, apt, git, and Docker proxy settings.
+
+Example:
+
+```bash
+.codex/skills/deploy-ubuntu-mihomo/scripts/deploy_ubuntu_mihomo.sh \
+  --host root@example.com \
+  --config /path/to/private/mihomo.yaml \
+  --apply-shell \
+  --apply-apt
+```
+
+Kimi Code CLI can invoke these as skills from the project:
+
+```text
+/skill:ubuntu-server-init initialize root@example.com for autodl and set up mihomo
+```
 
 ## Scripts
 

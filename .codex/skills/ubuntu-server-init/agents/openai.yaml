@@ -1,0 +1,6 @@
+interface:
+  display_name: "Ubuntu Server Init"
+  short_description: "Bootstrap Ubuntu servers with proxy"
+  default_prompt: "Use $ubuntu-server-init to initialize my fresh Ubuntu remote server and set up Mihomo proxy if needed."
+policy:
+  allow_implicit_invocation: true
